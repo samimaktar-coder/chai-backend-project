@@ -16,7 +16,7 @@ connectDB().then(() => {
             console.log(`Sever is runnig at port : ${process.env.PORT}`);
         };
     })
-    .catch(err => console.log('MONGODB connection faile !!! ', err))
+    .catch(err => console.log('MONGODB connection fail !!! ', err))
 
 
 

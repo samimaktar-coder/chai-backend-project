@@ -12,7 +12,14 @@ app.use(cors({
 app.use(express.json({ limit: "20kb" }));//! By this code, the backend will only take json as input the limit of the data is 20kb
 app.use(express.urlencoded({ extended: true, limit: "20kb" }));//! By this code, whenever you send any text(with spaces) in the url, it will convert the text to the url
 app.use(express.static("public"));
-app.use(cookieParser())
+app.use(cookieParser());
+
+
+//route import
+import userRouter from './routes/user.routes.js';
+
+//routes declaration
+app.use('/api/v1/users', userRouter);
 
 
 
