@@ -27,3 +27,4 @@
 - user.controller.js
 - auth.middleware.js
 - user.routes.js
+- user.controller.js
