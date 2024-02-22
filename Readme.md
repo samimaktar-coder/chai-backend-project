@@ -28,3 +28,5 @@
 - auth.middleware.js
 - user.routes.js
 - user.controller.js
+- subscription.model.js
+- user.controller.js
