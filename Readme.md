@@ -30,3 +30,4 @@
 - user.controller.js
 - subscription.model.js
 - user.controller.js
+- user.routes.js
