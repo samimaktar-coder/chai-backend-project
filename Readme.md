@@ -31,3 +31,5 @@
 - subscription.model.js
 - user.controller.js
 - user.routes.js
+- comments.routes.js
+ 
