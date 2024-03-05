@@ -26,14 +26,29 @@ const uploadOnCloudinary = async (localFilePath) => {
 };
 
 // BY_ME: This function is written by me.
-const deleteFromCloudinary = async (publiId) => {
+const deleteFromCloudinary = async (url) => {
     try {
-        if (!publiId) return null;
-        const response = await cloudinary.uploader.destroy(publiId);
+        const parts = url.split('/');
+        // Find the part containing the public_id
+        let publicId = parts[parts.length - 1].split('.')[0];
+        if (!publicId) return null;
+        const response = await cloudinary.uploader.destroy(publicId);
         return response;
     } catch (error) {
-        return null;
+        return error;
+    }
+};
+const deleteVideoFromCloudinary = async (url) => {
+    try {
+        const parts = url.split('/');
+        // Find the part containing the public_id
+        let publicId = parts[parts.length - 1].split('.')[0];
+        if (!publicId) return null;
+        const response = await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
+        return response;
+    } catch (error) {
+        return error;
     }
 };
 
-export { uploadOnCloudinary, deleteFromCloudinary };
+export { uploadOnCloudinary, deleteFromCloudinary, deleteVideoFromCloudinary };

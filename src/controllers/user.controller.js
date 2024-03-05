@@ -23,12 +23,12 @@ const generateAccessAndRefreshTokens = async (userId) => {
     }
 };
 
-const getPublicIdFromUrl = (url) => {
-    const parts = url.split('/');
-    // Find the part containing the public_id
-    let publicId = parts[parts.length - 1].split('.')[0];
-    return publicId;
-};
+// const getPublicIdFromUrl = (url) => {
+//     const parts = url.split('/');
+//     // Find the part containing the public_id
+//     let publicId = parts[parts.length - 1].split('.')[0];
+//     return publicId;
+// };
 
 const registerUser = asyncHandler(async (req, res) => {
     // get user details from frontend
@@ -278,8 +278,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     ).select('-password');
 
     //TODO: delete old image - assignment
-    let publicId = getPublicIdFromUrl(deletedImgUrl);
-    await deleteFromCloudinary(publicId);
+    await deleteFromCloudinary(deletedImgUrl);
 
     return res
         .status(200)
@@ -311,9 +310,8 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
     ).select('-password');
 
     //TODO: delete old image - assignment
-    let publicId = getPublicIdFromUrl(deletedImgUrl);
     if (deletedImgUrl) {
-        await deleteFromCloudinary(publicId);
+        await deleteFromCloudinary(deletedImgUrl);
     }
 
     return res

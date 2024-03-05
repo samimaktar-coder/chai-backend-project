@@ -14,7 +14,7 @@ const createTweet = asyncHandler(async (req, res) => {
     }
 
     const userTweet = await Tweet.create({
-        owner: req.user.id,
+        owner: req.user._id,
         content: tweet
     });
 
