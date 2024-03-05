@@ -15,14 +15,57 @@ const addComment = asyncHandler(async (req, res) => {
     // TODO: add a comment to a video
     const { videoId } = req.params;
     const { comment } = req.body;
+
+    if (!comment) {
+        throw new ApiError(400, 'Please give a comment.');
+    }
+
+    const commentData = await Comment.create({
+        video: videoId,
+        content: comment,
+        owner: req.user._id
+    });
+
+    if (!commentData) {
+        throw new ApiError(400, 'Something went wrong while uploading comment');
+    }
+
+    return res.status(200).json(new ApiResponse(200, commentData, 'Comment uploaded successfully.'));
 });
 
 const updateComment = asyncHandler(async (req, res) => {
     // TODO: update a comment
+    const { commentId } = req.params;
+    const { comment } = req.body;
+
+    const updatedComment = await Comment.findByIdAndUpdate(
+        commentId,
+        {
+            $set: {
+                content: comment
+            }
+        },
+        { new: true }
+    );
+
+    if (!updatedComment) {
+        throw new ApiError(400, 'comment does not exists.');
+    }
+
+    return res.status(200).json(new ApiResponse(200, updatedComment, 'Comment updated successfully.'));
 });
 
 const deleteComment = asyncHandler(async (req, res) => {
     // TODO: delete a comment
+    const { commentId } = req.params;
+
+    const deletedComment = await Comment.findByIdAndDelete(commentId);
+
+    if (!deletedComment) {
+        throw new ApiError(400, 'comment does not exists.');
+    }
+
+    return res.status(200).json(new ApiResponse(200, {}, 'Comment deleted successfully.'));
 });
 
 export {
