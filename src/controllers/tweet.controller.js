@@ -9,7 +9,7 @@ const createTweet = asyncHandler(async (req, res) => {
     //TODO: create tweet
     const { tweet } = req.body;
 
-    if (!tweet) {
+    if (!tweet || tweet?.trim() === '') {
         throw new ApiError(400, 'There is no content.');
     }
 
@@ -17,6 +17,10 @@ const createTweet = asyncHandler(async (req, res) => {
         owner: req.user._id,
         content: tweet
     });
+
+    if (!userTweet) {
+        throw new ApiError(500, 'Something went wrong while tweeting.');
+    }
 
     return res.status(200).json(new ApiResponse(200, userTweet, 'Tweeted successfully'));
 });
@@ -35,9 +39,24 @@ const getUserTweets = asyncHandler(async (req, res) => {
 const updateTweet = asyncHandler(async (req, res) => {
     //TODO: update tweet
     const { tweetId } = req.params;
-    const { tweet: tweetContent } = req.body;
 
-    const tweet = await Tweet.findByIdAndUpdate(
+    if (!isValidObjectId(tweetId)) {
+        throw new ApiError(400, 'There tweet does not exist.');
+    }
+
+    const { tweet: tweetContent } = req.body;
+    if (!tweetContent || tweetContent?.trim() === '') {
+        throw new ApiError(400, 'There is no content.');
+    }
+
+    const tweet = await Tweet.findById(tweetId);
+
+    if (tweet.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(400, 'You are not allowed to update this tweet.');
+    }
+
+
+    const updatedTweet = await Tweet.findByIdAndUpdate(
         tweetId,
         {
             $set: {
@@ -47,18 +66,28 @@ const updateTweet = asyncHandler(async (req, res) => {
         { new: true }
     );
 
-    if (!tweet) throw new ApiError(200, "This tweet doesn't exists.");
+    if (!updatedTweet) throw new ApiError(200, "This tweet doesn't exists.");
 
-    return res.status(200).json(new ApiResponse(200, tweet, 'Tweet updated successfully'));
+    return res.status(200).json(new ApiResponse(200, updatedTweet, 'Tweet updated successfully'));
 });
 
 const deleteTweet = asyncHandler(async (req, res) => {
     //TODO: delete tweet
     const { tweetId } = req.params;
 
-    const tweet = await Tweet.findByIdAndDelete(tweetId);
+    if (!isValidObjectId(tweetId)) {
+        throw new ApiError(400, 'There tweet does not exist.');
+    }
 
-    if (!tweet) throw new ApiError(200, "This tweet does not exists.");
+    const tweet = await Tweet.findById(tweetId);
+
+    if (tweet.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(400, 'You are not allowed to delete this tweet.');
+    }
+
+    const deltedTweet = await Tweet.findByIdAndDelete(tweetId);
+
+    if (!deltedTweet) throw new ApiError(200, "This tweet does not exists.");
 
     return res.status(200).json(new ApiResponse(200, {}, 'Tweet deleted successfully'));
 });
