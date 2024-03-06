@@ -10,6 +10,10 @@ const createPlaylist = asyncHandler(async (req, res) => {
 
     //TODO: create playlist
 
+    if (!name || name.trim() === '' || !description || description.trim() === '') {
+        throw new ApiError(400, 'Please give name and description');
+    }
+
     const playlist = await Playlist.create({
         name,
         description,
@@ -28,6 +32,9 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
     const { userId } = req.params;
     //TODO: get user playlists
 
+    if (!isValidObjectId(userId)) {
+        throw new ApiError(400, 'This user id is not valid.');
+    }
 
     const allPlaylist = await Playlist.aggregate([
         {
@@ -37,7 +44,6 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
         }
     ]);
 
-    // console.log(isValidObjectId(userId));
 
     if (!allPlaylist.length) {
         throw new ApiError(200, 'This user does not exists.');
@@ -66,6 +72,16 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
     const { playlistId, videoId } = req.params;
 
+    if (!isValidObjectId(playlistId) || !isValidObjectId(videoId)) {
+        throw new ApiError(400, 'The playlis id or video id is not valid.');
+    }
+
+    const playlist = await Playlist.findById(playlistId);
+
+    if (playlist.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(400, 'You are not allowed to add video into the playlist.');
+    }
+
     const updatedPlaylist = await Playlist.findByIdAndUpdate(
         playlistId,
         {
@@ -87,6 +103,15 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     const { playlistId, videoId } = req.params;
     // TODO: remove video from playlist
 
+    if (!isValidObjectId(playlistId) || !isValidObjectId(videoId)) {
+        throw new ApiError(400, 'The playlis id or video id is not valid.');
+    }
+
+    const playlist = await Playlist.findById(playlistId);
+
+    if (playlist.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(400, 'You are not allowed to add video into the playlist.');
+    }
 
     const updatedPlaylist = await Playlist.findByIdAndUpdate(
         playlistId,
@@ -109,9 +134,20 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
 const deletePlaylist = asyncHandler(async (req, res) => {
     const { playlistId } = req.params;
     // TODO: delete playlist
-    const playlist = await Playlist.findByIdAndDelete(playlistId);
 
-    if (!playlist) {
+    if (!isValidObjectId(playlistId)) {
+        throw new ApiError(400, 'The playlis id is not valid.');
+    }
+
+    const playlist = await Playlist.findById(playlistId);
+
+    if (playlist.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(400, 'You are not allowed to add video into the playlist.');
+    }
+
+    const deletedPlaylist = await Playlist.findByIdAndDelete(playlistId);
+
+    if (!deletedPlaylist) {
         throw new ApiError(400, 'This playlist does not exists.');
     }
 
@@ -123,12 +159,26 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     const { name, description } = req.body;
     //TODO: update playlist
 
+    if (!isValidObjectId(playlistId)) {
+        throw new ApiError(400, 'The playlist id is not valid.');
+    }
+
+    const playlist = await Playlist.findById(playlistId);
+
+    if (playlist.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(400, 'You are not allowed to add video into the playlist.');
+    }
+
+    if (!name && name.trim() === '' && !description && description.trim() === '') {
+        throw new ApiError(400, 'Please give any data to update.');
+    }
+
     const updatedPlaylist = await Playlist.findByIdAndUpdate(
         playlistId,
         {
             $set: {
-                name: name,
-                description: description
+                name: name || playlist.name,
+                description: description || playlist.description
             }
         },
         { new: true }
