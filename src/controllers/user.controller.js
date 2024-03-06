@@ -21,14 +21,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
     } catch (error) {
         throw new ApiError(500, "Something went wrong while generating refresh and access token");
     }
-};
-
-// const getPublicIdFromUrl = (url) => {
-//     const parts = url.split('/');
-//     // Find the part containing the public_id
-//     let publicId = parts[parts.length - 1].split('.')[0];
-//     return publicId;
-// };
+};  
 
 const registerUser = asyncHandler(async (req, res) => {
     // get user details from frontend

@@ -7,14 +7,20 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 
 const toggleSubscription = asyncHandler(async (req, res) => {
-    const { subscriberId } = req.params;
+    const { channelId } = req.params;
     // TODO: toggle subscription
     const userId = req.user._id;
+
+    const channel = await User.findById(channelId);
+
+    if (!isValidObjectId(channelId) || !channel) {
+        throw new ApiError(400, 'This channel does not exist.');
+    }
 
     const alreadySubscribed = await Subscription.findOneAndDelete(
         {
             subscriber: userId,
-            channel: subscriberId
+            channel: channelId
         }
     );
 
@@ -25,11 +31,11 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     const subscription = await Subscription.create(
         {
             subscriber: userId,
-            channel: subscriberId
+            channel: channelId
         }
     );
 
-    if (!subscription) throw new ApiError(400, 'There is something wrong in subscription.');
+    if (!subscription) throw new ApiError(400, 'Something went wrong while subscription.');
 
     return res.status(200).json(new ApiResponse(200, subscription, 'Subscribed successfully.'));
 
@@ -40,35 +46,6 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     const { subscriberId } = req.params;
     console.log(subscriberId);
 
-    // const allSubscribers = await User.aggregate([
-    //     {
-    //         $match: {
-    //             _id: new mongoose.Types.ObjectId(subscriberId)
-    //         }
-    //     },
-    //     {
-    //         $lookup: {
-    //             from: "subscriptions",
-    //             localField: "_id",
-    //             foreignField: "channel",
-    //             as: "subscribers"
-    //         }
-    //     },
-    //     {
-    //         $group: {
-    //             _id: "_id",
-    //             subscribers: { $push: "$subscribers" },
-    //         }
-    //     }
-    //     , {
-    //         $project: {
-    //             _id: 0,
-    //             subscribers: 1
-    //         }
-    //     }
-    // ]);
-
-
     const allSubscribers = await Subscription.aggregate([
         {
             $match: {
@@ -76,12 +53,31 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
             }
         },
         {
-            $group: {
-                _id: "channel",
-                subscribers: { $push: "$subscriber" },
+            $lookup: {
+                from: "users",
+                localField: "subscriber",
+                foreignField: "_id",
+                as: "subscriber"
             }
-        }
-        , {
+        },
+        {
+            $unwind: "$subscriber" // Unwind the subscribers array
+        },
+        {
+            $project: {
+                _id: "$subscriber._id",
+                username: "$subscriber.username",
+                fullName: "$subscriber.fullName",
+                avatar: "$subscriber.avatar"
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                subscribers: { $push: "$$ROOT" }
+            }
+        },
+        {
             $project: {
                 _id: 0,
                 subscribers: 1
@@ -89,13 +85,13 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
         }
     ]);
 
-    // console.log(allSubscribers[0]);
+    console.log(allSubscribers[0].subscribers);
 
-    if (!allSubscribers.length) {
+    if (!allSubscribers[0].subscribers.length) {
         throw new ApiError(400, 'Channel does not exists');
     }
 
-    if (allSubscribers[0].length === 0) {
+    if (allSubscribers[0].subscribers.length === 0) {
         return res.status(200).json(new ApiResponse(200, allSubscribers[0], 'This channel does not have subscribr yet.'));
     }
 
@@ -108,34 +104,6 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
     const { channelId } = req.params;
     console.log(channelId);
 
-    // const subscribedChannels = await User.aggregate([
-    //     {
-    //         $match: {
-    //             _id: new mongoose.Types.ObjectId(channelId)
-    //         }
-    //     },
-    //     {
-    //         $lookup: {
-    //             from: 'subscriptions',
-    //             localField: '_id',
-    //             foreignField: 'subscriber',
-    //             as: 'channels'
-    //         }
-    //     },
-    //     {
-    //         $group: {
-    //             _id: '_id',
-    //             channels: { $push: "$channels" }
-    //         }
-    //     },
-    //     {
-    //         $project: {
-    //             _id: 0,
-    //             channels: 1
-    //         }
-    //     }
-    // ]);
-
     const subscribedChannels = await Subscription.aggregate([
         {
             $match: {
@@ -143,9 +111,28 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
             }
         },
         {
+            $lookup: {
+                from: "users",
+                localField: "channel",
+                foreignField: "_id",
+                as: "channel"
+            }
+        },
+        {
+            $unwind: "$channel" // Unwind the channels array
+        },
+        {
+            $project: {
+                _id: "$channel._id",
+                username: "$channel.username",
+                fullName: "$channel.fullName",
+                avatar: "$channel.avatar"
+            }
+        },
+        {
             $group: {
-                _id: 'subscriber',
-                channels: { $push: "$channel" }
+                _id: null,
+                channels: { $push: "$$ROOT" }
             }
         },
         {
@@ -156,13 +143,12 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
         }
     ]);
 
-    // console.log(subscribedChannels[0]);
 
-    if (!subscribedChannels.length) {
+    if (!subscribedChannels[0].channels.length) {
         throw new ApiError(400, 'This user does not exists');
     }
 
-    if (subscribedChannels[0].length === 0) {
+    if (subscribedChannels[0].channels.length === 0) {
         return res.status(200).json(new ApiResponse(200, subscribedChannels[0], 'This user does not subscribed any channle yet.'));
     }
 
