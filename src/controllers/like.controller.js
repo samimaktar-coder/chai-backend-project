@@ -7,6 +7,10 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 const toggleVideoLike = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     //TODO: toggle like on video
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "This video id is not valid");
+    }
+
     const removeLike = await Like.findOneAndDelete({ likedBy: req.user._id, video: videoId });
 
     if (removeLike) {
@@ -28,6 +32,10 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
 const toggleCommentLike = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
     //TODO: toggle like on comment
+    if (!isValidObjectId(commentId)) {
+        throw new ApiError(400, "This comment id is not valid");
+    }
+
     const removeLike = await Like.findOneAndDelete({ likedBy: req.user._id, comment: commentId });
 
     if (removeLike) {
@@ -50,6 +58,10 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 const toggleTweetLike = asyncHandler(async (req, res) => {
     const { tweetId } = req.params;
     //TODO: toggle like on tweet
+    if (!isValidObjectId(tweetId)) {
+        throw new ApiError(400, "This tweet id is not valid");
+    }
+
     const removeLike = await Like.findOneAndDelete({ likedBy: req.user._id, tweet: tweetId });
 
     if (removeLike) {
@@ -78,30 +90,58 @@ const getLikedVideos = asyncHandler(async (req, res) => {
             }
         },
         {
+            $lookup: {
+                from: 'videos',
+                localField: 'video',
+                foreignField: '_id',
+                as: 'likedVideos'
+            }
+        },
+        {
+            $unwind: "$likedVideos"
+        },
+        {
+            $match: {
+                "likedVideos.isPublished": true
+            }
+        },
+        {
+            $project: {
+                _id: "$likedVideos._id",
+                thumbnail: "$likedVideos.thumbnail",
+                title: "$likedVideos.title",
+                description: "$likedVideos.description",
+                duration: "$likedVideos.duration",
+                owner: "$likedVideos.owner",
+                createdAt: "$likedVideos.createdAt",
+            }
+        },
+        {
             $group: {
-                _id: 'likedBy',
-                videos: { $push: "$video" }
+                _id: null,
+                likedVideos: { $push: "$$ROOT" }
             }
         },
         {
             $project: {
                 _id: 0,
-                videos: 1
+                likedVideos: 1
             }
         }
     ]);
 
-    if (!allVideos.length) {
+    console.log(allVideos[0].likedVideos);
+
+    if (!allVideos[0].likedVideos.length) {
         throw new ApiError(400, 'There is no videos');
     }
 
-    if (allVideos.length === 0) {
+    if (allVideos[0].likedVideos.length === 0) {
         return res.status(200).json(new ApiResponse(200, allVideos[0], 'There is no videos you liked'));
     }
     return res.status(200).json(new ApiResponse(200, allVideos[0], 'All liked videos fetched.'));
-
-
 });
+
 
 export {
     toggleCommentLike,
