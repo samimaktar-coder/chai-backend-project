@@ -15,7 +15,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body;
     // TODO: get video, upload to cloudinary, create video
-    if (!title || !description) {
+    if (!title || title.trim() === "" || !description || description.trim() === "") {
         throw new ApiError(400, 'Please give a title and a description.');
     }
 
@@ -29,6 +29,10 @@ const publishAVideo = asyncHandler(async (req, res) => {
     const videoFile = await uploadOnCloudinary(videoPath);
     const thumbnail = await uploadOnCloudinary(thumbnailPath);
 
+    if (!videoFile?.url || !thumbnail?.url) {
+        throw new ApiError(500, "Something went wrong while uplaoding the video and thumbnail");
+    }
+
     const video = await Video.create({
         videoFile: videoFile?.url,
         thumbnail: thumbnail?.url,
@@ -39,6 +43,10 @@ const publishAVideo = asyncHandler(async (req, res) => {
         isPublished: true,
         owner: req.user._id
     });
+
+    if (!video) {
+        throw new ApiError(400, 'Video is not published.');
+    }
 
     return res.status(200).json(new ApiResponse(200, video, 'Video uploaded successfully.'));
 
@@ -53,6 +61,10 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'This video does not exists.');
     }
 
+    if (!video.isPublished && !(video.owner.toString() === req.user?._id.toString())) {
+        throw new ApiError(400, 'You are not allowed to access this video.');
+    }
+
     return res.status(200).json(new ApiResponse(200, video, 'Video fetched successfully.'));
 });
 
@@ -60,17 +72,25 @@ const updateVideo = asyncHandler(async (req, res) => {
     //TODO: update video details like title, description, thumbnail
     const { videoId } = req.params;
     const { title, description } = req.body;
-
     const video = await Video.findById(videoId);
 
     if (!video) {
         throw new ApiError(400, 'This video does not exists.');
     }
 
+    if (!(video.owner.toString() === req.user?._id.toString())) {
+        throw new ApiError(400, 'You are not allowed to access this video.');
+    }
+
+
     let thumbnailPath = req.file?.path;
     let thumbnail;
     if (thumbnailPath) {
         thumbnail = await uploadOnCloudinary(thumbnailPath);
+    }
+
+    if (!thumbnail?.url && !title && title.trim() === "" && !description && description.trim() === "") {
+        throw new ApiError(400, 'Please give any data to update.');
     }
 
     const updatedVideo = await Video.findByIdAndUpdate(
@@ -97,11 +117,22 @@ const updateVideo = asyncHandler(async (req, res) => {
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
     //TODO: delete video
-    const video = await Video.findByIdAndDelete(videoId);
 
-    if (!video) {
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, 'This is not a valid video id.');
+    }
+
+    const findVideo = await Video.findById(videoId);
+
+    if (!findVideo) {
         throw new ApiError(400, 'This video does not exists.');
     }
+
+    if (!(findVideo.owner.toString() === req.user?._id.toString())) {
+        throw new ApiError(400, 'You are not allowed to access this video.');
+    }
+
+    const video = await Video.findByIdAndDelete(videoId);
 
     await deleteVideoFromCloudinary(video.videoFile);
     await deleteFromCloudinary(video.thumbnail);
@@ -115,13 +146,18 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
     const video = await Video.findById(videoId);
 
-    video.isPublished = !video.isPublished;
-
-    const updatedVideo = await video.save();
-
     if (!video) {
         throw new ApiError(400, 'This user does not exists.');
     }
+
+    if (!(video.owner.toString() === req.user?._id.toString())) {
+        throw new ApiError(400, 'You are not allowed to access this video.');
+    }
+
+    video.isPublished = !video.isPublished;
+
+    const updatedVideo = await video.save({ validateBeforeSave: false });
+
 
     return res.status(200).json(new ApiResponse(200, updatedVideo, 'Video updated successfully.'));
 });
