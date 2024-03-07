@@ -142,10 +142,70 @@ const getLikedVideos = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, allVideos[0], 'All liked videos fetched.'));
 });
 
+const getLikedTweets = asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+
+
+    if (!isValidObjectId(userId)) {
+        throw new ApiError(400, 'This is not a valid user id.');
+    }
+
+    const likedTweets = await Like.aggregate([
+        {
+            $match: {
+                likedBy: new mongoose.Types.ObjectId(userId)
+            }
+        },
+        {
+            $lookup: {
+                from: 'tweets',
+                localField: 'tweet',
+                foreignField: '_id',
+                as: 'likedTweets'
+            }
+        },
+        {
+            $unwind: "$likedTweets"
+        },
+        {
+            $project: {
+                _id: "$likedTweets._id",
+                owner: "$likedTweets.owner",
+                content: "$likedTweets.content",
+                createdAt: "$likedTweets.createdAt",
+                updatedAt: "$likedTweets.updatedAt"
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                likedTweets: { $push: "$$ROOT" }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                likedTweets: 1
+            }
+        }
+    ]);
+
+
+    if (!likedTweets) {
+        throw new ApiError(400, 'Something went wrong while fetching data');
+    }
+    if (likedTweets.length === 0) {
+        return res.status(200).json(new ApiResponse(200, likedTweets, 'This user has not liked any tweet yet.'));
+    }
+
+    return res.status(200).json(new ApiResponse(200, likedTweets[0], 'All tweets fetched successfully.'));
+
+});
 
 export {
     toggleCommentLike,
     toggleTweetLike,
     toggleVideoLike,
-    getLikedVideos
+    getLikedVideos,
+    getLikedTweets
 };

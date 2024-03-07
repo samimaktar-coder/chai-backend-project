@@ -10,6 +10,24 @@ import { deleteFromCloudinary, deleteVideoFromCloudinary, uploadOnCloudinary } f
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
     //TODO: get all videos based on query, sort, pagination
+
+    Video.aggregatePaginate(
+        Video.aggregate([
+            {
+                $match: {
+                    owner: new mongoose.Types.ObjectId(userId)
+                }
+            }
+        ]),
+        { page, limit })
+        .then((result) => {
+            return res.status(200).json(
+                new ApiResponse(200, result, "All videos fetched  successfully!!"));
+        })
+        .catch((error) => {
+            throw new ApiError(500, "something went wrong while fetching video Comments", error);
+        });
+
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {

@@ -19,7 +19,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
     Comment.aggregatePaginate(allVideoComments, { page, limit })
         .then((result) => {
-            return res.status(201).json(
+            return res.status(200).json(
                 new ApiResponse(200, result, "VideoComments fetched  successfully!!"));
         })
         .catch((error) => {
