@@ -85,14 +85,9 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
         }
     ]);
 
-    console.log(allSubscribers[0].subscribers);
 
-    if (!allSubscribers[0].subscribers.length) {
-        throw new ApiError(400, 'Channel does not exists');
-    }
-
-    if (allSubscribers[0].subscribers.length === 0) {
-        return res.status(200).json(new ApiResponse(200, allSubscribers[0], 'This channel does not have subscribr yet.'));
+    if (!allSubscribers.length) {
+        return res.status(200).json(new ApiResponse(200, allSubscribers, 'This channel doest not have any subscribers.'));
     }
 
     return res.status(200).json(new ApiResponse(200, allSubscribers[0], 'All Subscribers fetched succesffully.'));
@@ -102,7 +97,6 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
     const { channelId } = req.params;
-    console.log(channelId);
 
     const subscribedChannels = await Subscription.aggregate([
         {
@@ -144,12 +138,8 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
     ]);
 
 
-    if (!subscribedChannels[0].channels.length) {
-        throw new ApiError(400, 'This user does not exists');
-    }
-
-    if (subscribedChannels[0].channels.length === 0) {
-        return res.status(200).json(new ApiResponse(200, subscribedChannels[0], 'This user does not subscribed any channle yet.'));
+    if (subscribedChannels.length === 0) {
+        return res.status(200).json(new ApiResponse(200, subscribedChannels, 'This channel does not subscribed any channel yet.'));
     }
 
     return res.status(200).json(new ApiResponse(200, subscribedChannels[0], 'All subscribed channels fetched successfully.'));

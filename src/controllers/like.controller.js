@@ -130,15 +130,11 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         }
     ]);
 
-    console.log(allVideos[0].likedVideos);
 
-    if (!allVideos[0].likedVideos.length) {
-        throw new ApiError(400, 'There is no videos');
+    if (!allVideos.length) {
+        return res.status(200).json(new ApiResponse(200, allVideos, 'There is no videos you liked'));
     }
 
-    if (allVideos[0].likedVideos.length === 0) {
-        return res.status(200).json(new ApiResponse(200, allVideos[0], 'There is no videos you liked'));
-    }
     return res.status(200).json(new ApiResponse(200, allVideos[0], 'All liked videos fetched.'));
 });
 
@@ -191,10 +187,7 @@ const getLikedTweets = asyncHandler(async (req, res) => {
     ]);
 
 
-    if (!likedTweets) {
-        throw new ApiError(400, 'Something went wrong while fetching data');
-    }
-    if (likedTweets.length === 0) {
+    if (!likedTweets.length) {
         return res.status(200).json(new ApiResponse(200, likedTweets, 'This user has not liked any tweet yet.'));
     }
 
